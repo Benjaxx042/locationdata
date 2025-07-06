@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Location Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg-color: #0f2027;
+      --text-color: #ffffff;
+      --card-bg: rgba(255, 255, 255, 0.1);
+      --button-bg: #00c6ff;
+    }
+
+    [data-theme="light"] {
+      --bg-color: #f4f4f4;
+      --text-color: #111;
+      --card-bg: #fff;
+      --button-bg: #007BFF;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem;
+      min-height: 100vh;
+      margin: 0;
+      transition: background 0.4s, color 0.4s;
+    }
+
+    .dashboard {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      margin: 0.4rem 0;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background-color: var(--button-bg);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #map {
+      margin-top: 1rem;
+      width: 100%;
+      height: 250px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+    }
+
+    img.flag {
+      margin-top: 1rem;
+      height: 40px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="dashboard">
+    <h1>Your Location Dashboard</h1>
+    <button onclick="toggleTheme()">Toggle Light/Dark Mode</button>
+    <p><strong>ZIP Code:</strong> <span id="zipcode">Loading...</span></p>
+    <p><strong>City:</strong> <span id="city">Loading...</span></p>
+    <p><strong>Region:</strong> <span id="region">Loading...</span></p>
+    <p><strong>Country:</strong> <span id="country">Loading...</span> <img class="flag" id="flag" src="" alt=""></p>
+    <p><strong>Latitude:</strong> <span id="latitude">Loading...</span></p>
+    <p><strong>Longitude:</strong> <span id="longitude">Loading...</span></p>
+    <p><strong>ISP:</strong> <span id="isp">Loading...</span></p>
+    <p><strong>IP Address:</strong> <span id="ip">Loading...</span></p>
+    <p><strong>Time Zone:</strong> <span id="timezone">Loading...</span></p>
+    <p><strong>Local Time:</strong> <span id="localtime">Loading...</span></p>
+    <button onclick="copyLocation()">Copy Info to Clipboard</button>
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      body.dataset.theme = body.dataset.theme === "light" ? "dark" : "light";
+    }
+
+    function copyLocation() {
+      const text = `
+ZIP Code: ${document.getElementById("zipcode").textContent}
+City: ${document.getElementById("city").textContent}
+Region: ${document.getElementById("region").textContent}
+Country: ${document.getElementById("country").textContent}
+Latitude: ${document.getElementById("latitude").textContent}
+Longitude: ${document.getElementById("longitude").textContent}
+ISP: ${document.getElementById("isp").textContent}
+IP: ${document.getElementById("ip").textContent}
+Time Zone: ${document.getElementById("timezone").textContent}
+Local Time: ${document.getElementById("localtime").textContent}`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Location info copied!");
+      });
+    }
+
+    fetch("https://ipinfo.io/json?token=b8e43e3021a794")
+      .then(response => response.json())
+      .then(data => {
+        const [lat, lon] = data.loc.split(",");
+        document.getElementById("zipcode").textContent = data.postal || 'N/A';
+        document.getElementById("city").textContent = data.city || 'N/A';
+        document.getElementById("region").textContent = data.region || 'N/A';
+        document.getElementById("country").textContent = data.country || 'N/A';
+        document.getElementById("flag").src = `https://flagcdn.com/48x36/${data.country.toLowerCase()}.png`;
+        document.getElementById("latitude").textContent = lat || 'N/A';
+        document.getElementById("longitude").textContent = lon || 'N/A';
+        document.getElementById("isp").textContent = data.org || 'N/A';
+        document.getElementById("ip").textContent = data.ip || 'N/A';
+        document.getElementById("timezone").textContent = data.timezone || 'N/A';
+        document.getElementById("localtime").textContent = new Date().toLocaleString("en-US", { timeZone: data.timezone });
+
+        // Leaflet map
+        const map = L.map('map').setView([lat, lon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([lat, lon]).addTo(map).bindPopup("You are here").openPopup();
+      })
+      .catch(() => {
+        const fields = ["zipcode", "city", "region", "country", "latitude", "longitude", "isp", "ip", "timezone", "localtime"];
+        fields.forEach(id => document.getElementById(id).textContent = "Error");
+      });
+  </script>
+</body>
+</html>
